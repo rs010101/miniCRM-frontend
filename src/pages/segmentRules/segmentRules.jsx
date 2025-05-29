@@ -46,7 +46,7 @@ const SegmentRules = () => {
   // Memoize fetchSegmentRules to prevent infinite loop
   const fetchSegmentRules = useCallback(async () => {
     try {
-      const response = await fetch('https://minicrm-backend-av3l.onrender.com/api/segment-rules', {
+      const response = await fetch('https://minicrm-backend-1.onrender.com/api/segment-rules', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -102,7 +102,7 @@ const SegmentRules = () => {
     };
     
     try {
-      const response = await fetch('https://minicrm-backend-av3l.onrender.com/api/segment-rules', {
+      const response = await fetch('https://minicrm-backend-1.onrender.com/api/segment-rules', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
