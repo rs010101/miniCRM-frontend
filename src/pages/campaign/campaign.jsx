@@ -196,7 +196,7 @@ const Campaign = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('https://minicrm-backend-1.onrender.com0/api/campaigns', {
+      const response = await fetch('https://minicrm-backend-1.onrender.com/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
