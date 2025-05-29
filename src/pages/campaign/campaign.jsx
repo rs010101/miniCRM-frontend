@@ -22,7 +22,7 @@ const Campaign = () => {
 
   const fetchSegmentRules = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/segment-rules', {
+      const response = await fetch('https://minicrm-backend-av3l.onrender.com/api/segment-rules', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -45,7 +45,7 @@ const Campaign = () => {
   const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/campaigns', {
+      const response = await fetch('https://minicrm-backend-av3l.onrender.com/api/campaigns', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -77,7 +77,7 @@ const Campaign = () => {
   const fetchCustomersForSegment = useCallback(async (segmentId) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/segment-rules/${segmentId}/customers`, {
+      const response = await fetch(`https://minicrm-backend-av3l.onrender.com/api/segment-rules/${segmentId}/customers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -102,7 +102,7 @@ const Campaign = () => {
 
   const fetchCampaignStats = useCallback(async (campaignId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/campaigns/${campaignId}/stats`, {
+      const response = await fetch(`https://minicrm-backend-av3l.onrender.com/api/campaigns/${campaignId}/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -149,7 +149,7 @@ const Campaign = () => {
     setShowSuggestions(false);
     
     try {
-      const response = await fetch('http://localhost:5000/api/campaigns/ai-suggestions', {
+      const response = await fetch('https://minicrm-backend-av3l.onrender.com/api/campaigns/ai-suggestions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +196,7 @@ const Campaign = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('http://localhost:5000/api/campaigns', {
+      const response = await fetch('https://minicrm-backend-av3l.onrender.com0/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

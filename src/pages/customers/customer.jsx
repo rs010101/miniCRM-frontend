@@ -16,7 +16,7 @@ const Customer = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/user/data", {
+        const res = await fetch("https://minicrm-backend-av3l.onrender.com/api/user/data", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -59,7 +59,7 @@ const Customer = () => {
   const saveDataToBackend = async (data) => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/user/data", {
+      const res = await fetch("https://minicrm-backend-av3l.onrender.com/api/user/data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
