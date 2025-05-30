@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FaSpinner, FaCheckCircle, FaUsers } from "react-icons/fa";
+import { 
+  FaSpinner, 
+  FaCheckCircle, 
+  FaUsers,
+  FaPaperPlane,
+  FaExclamationCircle 
+} from "react-icons/fa";
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
+
+const StatCard = ({ label, value, icon: Icon }) => (
+  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+    <div className="flex items-center gap-2">
+      {Icon && <Icon className="h-6 w-6 text-primary-600" />}
+      <div className="text-sm font-medium text-gray-700">{label}</div>
+    </div>
+    <div className="mt-1 text-2xl font-bold text-gray-900">{value}</div>
+  </div>
+);
 
 const Campaign = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -19,6 +35,7 @@ const Campaign = () => {
   const [viewMode, setViewMode] = useState('create'); 
   const [campaignStats, setCampaignStats] = useState(null);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [error, setError] = useState(null);
 
   const fetchSegmentRules = useCallback(async () => {
     try {
@@ -100,36 +117,96 @@ const Campaign = () => {
     }
   }, [token, setLoading, setCustomers]);
 
-  const fetchCampaignStats = useCallback(async (campaignId) => {
+  const handleViewStats = async (campaignId) => {
     try {
-      const response = await fetch(`https://minicrm-backend-1.onrender.com/api/campaigns/${campaignId}/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      setLoading(true);
+      setError(null);
       
-      if (data && !data.success && !data.message) {
-        // API returns stats object directly
-        setCampaignStats({
-          ...data,
-          name: campaigns.find(c => c._id === campaignId)?.name || 'Campaign'
-        });
-        setSelectedCampaign(campaignId);
-      } else if (data.success) {
-        // Fallback for if API response format changes
-        setCampaignStats({
-          ...data.data,
-          name: campaigns.find(c => c._id === campaignId)?.name || 'Campaign'
-        });
-        setSelectedCampaign(campaignId);
-      } else {
-        console.error('Failed to fetch campaign stats:', data.message);
-        alert(`Failed to load campaign details: ${data.message || 'Unknown error'}`);
+      // Find the campaign details first
+      const campaign = campaigns.find(c => c._id === campaignId);
+      if (!campaign) {
+        throw new Error('Campaign not found');
       }
+
+      // Set the selected campaign first
+      setSelectedCampaign(campaign);
+
+      // Use AbortController for fetch timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(
+        `https://minicrm-backend-1.onrender.com/api/campaigns/${campaignId}/stats`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+
+      // More flexible response format handling
+      const stats = {
+        delivered: 0,
+        failed: 0,
+        pending: 0,
+        total: 0
+      };
+
+      // Handle different possible response formats
+      if (data.stats) {
+        // Direct stats object
+        stats.delivered = data.stats.delivered || 0;
+        stats.failed = data.stats.failed || 0;
+        stats.pending = data.stats.pending || 0;
+        stats.total = data.stats.total || 0;
+      } else if (Array.isArray(data)) {
+        // Array of status counts
+        data.forEach(item => {
+          if (item._id && typeof item.count === 'number') {
+            stats[item._id.toLowerCase()] = item.count;
+          }
+        });
+        stats.total = Object.values(stats).reduce((sum, count) => sum + count, 0);
+      } else if (typeof data === 'object') {
+        // Flat object with status counts
+        stats.delivered = data.delivered || 0;
+        stats.failed = data.failed || 0;
+        stats.pending = data.pending || 0;
+        stats.total = data.total || Object.values(stats).reduce((sum, count) => sum + count, 0);
+      }
+      
+      // Update campaign stats with more resilient data
+      setCampaignStats({
+        name: campaign.name || 'Untitled Campaign',
+        message: campaign.message || 'No message content',
+        delivered: stats.delivered,
+        failed: stats.failed,
+        pending: stats.pending,
+        total: stats.total,
+        summary: `Campaign sent to ${stats.total} customers`,
+        createdAt: campaign.createdAt || campaign.created_at || new Date()
+      });
+
     } catch (error) {
       console.error('Error fetching campaign stats:', error);
-      alert('An error occurred while loading campaign details');
+      // Check if the error is due to timeout/abort
+      if (error.name === 'AbortError') {
+        setError('Request timeout - please try again');
+      } else {
+        setError(error.message || 'Failed to fetch campaign stats');
+      }
+      // Reset selected campaign on error
+      setSelectedCampaign(null);
+    } finally {
+      setLoading(false);
     }
-  }, [token, setCampaignStats, setSelectedCampaign, campaigns]);
+  };
 
   const [messageSuggestions, setMessageSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -455,7 +532,10 @@ const Campaign = () => {
                         <span>Creating Campaign...</span>
                       </>
                     ) : (
-                      <span>Create & Send Campaign</span>
+                      <>
+                        <FaPaperPlane />
+                        <span>Create & Send Campaign</span>
+                      </>
                     )}
                   </button>
                 </div>
@@ -474,24 +554,38 @@ const Campaign = () => {
                       ← Back to all campaigns
                     </button>
                     
+                    {error ? (
+                      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+                        {error}
+                      </div>
+                    ) : campaignStats && (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <StatCard
+                          label="Total Recipients"
+                          value={campaignStats.total}
+                          icon={FaUsers}
+                        />
+                        <StatCard
+                          label="Delivered"
+                          value={campaignStats.delivered}
+                          icon={FaCheckCircle}
+                        />
+                        <StatCard
+                          label="Pending"
+                          value={campaignStats.pending}
+                          icon={FaSpinner}
+                        />
+                        <StatCard
+                          label="Failed"
+                          value={campaignStats.failed}
+                          icon={FaExclamationCircle}
+                        />
+                      </div>
+                    )}
+                    
                     {campaignStats && (
                       <div>
                         <h2 className="text-xl font-semibold mb-2">{campaignStats.name}</h2>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                            <div className="text-green-600 font-semibold">Delivered</div>
-                            <div className="text-2xl font-bold">{campaignStats.delivered}</div>
-                          </div>
-                          <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                            <div className="text-red-600 font-semibold">Failed</div>
-                            <div className="text-2xl font-bold">{campaignStats.failed}</div>
-                          </div>
-                          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                            <div className="text-blue-600 font-semibold">Total</div>
-                            <div className="text-2xl font-bold">{campaignStats.total}</div>
-                          </div>
-                        </div>
                         
                         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                           <h3 className="font-semibold mb-2">Performance Summary</h3>
@@ -569,7 +663,7 @@ const Campaign = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                   <button 
-                                    onClick={() => fetchCampaignStats(campaign._id)}
+                                    onClick={() => handleViewStats(campaign._id)}
                                     className="text-primary-600 hover:text-primary-900"
                                   >
                                     View Details
