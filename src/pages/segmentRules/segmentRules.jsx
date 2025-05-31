@@ -42,6 +42,7 @@ const SegmentRules = () => {
   const removeCondition = (id) => {
     setConditions(conditions.filter(cond => cond.id !== id));
   };
+  
 
   // Memoize fetchSegmentRules to prevent infinite loop
   const fetchSegmentRules = useCallback(async () => {
@@ -60,6 +61,30 @@ const SegmentRules = () => {
       console.error('Error fetching segment rules:', error);
     }
   }, [token]);
+
+  const handleDelete = async (ruleId) => {
+    if (!window.confirm('Are you sure you want to delete this segment rule?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://minicrm-backend-1.onrender.com/api/segment-rules/${ruleId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        // Refresh the list after successful deletion
+        fetchSegmentRules();
+      } else {
+        const data = await response.json();
+        alert(`Failed to delete segment rule: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error deleting segment rule:', error);
+      alert('An error occurred while deleting the segment rule');
+    }
+  };
 
   // Fetch saved segment rules on component mount
   useEffect(() => {
@@ -299,6 +324,7 @@ const SegmentRules = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logic Type</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conditions</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -323,6 +349,14 @@ const SegmentRules = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(rule.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <button
+                                onClick={() => handleDelete(rule._id)}
+                                className="text-red-600 hover:text-red-800 focus:outline-none"
+                              >
+                                <FaTrash />
+                              </button>
                             </td>
                           </tr>
                         ))}
