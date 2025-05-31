@@ -1,6 +1,17 @@
 import { FaBell, FaCog, FaSearch } from 'react-icons/fa';
 
-export default function Navbar({ user }) {
+export default function Navbar({ user = { name: 'Radhika Singhal' } }) {
+  // Get initials from name
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  const userInitials = getInitials(user.name);
+
   return (
     <div className="w-full h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-10">
       {/* Search bar */}
@@ -27,13 +38,10 @@ export default function Navbar({ user }) {
         <div className="flex items-center gap-3">
           <div className="hidden md:block">
             <p className="text-sm font-medium text-gray-700">Welcome!</p>
-            <p className="text-xs text-gray-500">{user?.name || 'User'}</p>
+            <p className="text-xs text-gray-500">{user.name}</p>
+          </div>          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+            {userInitials}
           </div>
-          <img
-            src={user?.picture || 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'}
-            alt="profile"
-            className="w-10 h-10 rounded-full object-cover border-2 border-primary-100"
-          />
         </div>
       </div>
     </div>
