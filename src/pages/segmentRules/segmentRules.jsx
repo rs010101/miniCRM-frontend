@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
-import { FaPlus, FaTrash, FaList } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaList, FaFilter, FaLayerGroup, FaCheck } from 'react-icons/fa';
+import { StatsCard, DataCard, Table } from '../../components/common/CardStyles';
 
 const SegmentRules = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -61,28 +62,35 @@ const SegmentRules = () => {
       console.error('Error fetching segment rules:', error);
     }
   }, [token]);
-
   const handleDelete = async (ruleId) => {
     if (!window.confirm('Are you sure you want to delete this segment rule?')) {
       return;
     }
 
-    try {
-      const response = await fetch(`https://minicrm-backend-1.onrender.com/api/segment-rules/${ruleId}`, {
+    setLoading(true);
+    try {      const response = await fetch(`https://minicrm-backend-1.onrender.com/api/segment-rules/${ruleId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       });
 
-      if (response.ok) {
-        // Refresh the list after successful deletion
-        fetchSegmentRules();
+      if (!response.ok) {
+        throw new Error('Failed to delete segment rule');
+      }
+
+      const data = await response.json();      if (data.success) {
+        // Only update the local state, no need to refetch
+        setSavedRules(prev => prev.filter(rule => rule._id !== ruleId));
       } else {
-        const data = await response.json();
-        alert(`Failed to delete segment rule: ${data.message}`);
+        throw new Error(data.message || 'Failed to delete segment rule');
       }
     } catch (error) {
       console.error('Error deleting segment rule:', error);
-      alert('An error occurred while deleting the segment rule');
+      alert(error.message || 'An error occurred while deleting the segment rule');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -184,198 +192,268 @@ const SegmentRules = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar user={user} />
         <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Header with Context Switching */}
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {viewMode === 'create' ? 'Create Segment Rule' : 'Saved Segment Rules'}
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {viewMode === 'create' ? 'Create Segment Rule' : 'Segment Rules'}
                 </h1>
-                <p className="text-gray-600">Define audience segments using flexible rule logic</p>
+                <p className="text-gray-600 mt-1">
+                  {viewMode === 'create'
+                    ? 'Define targeting criteria for your customer segments'
+                    : 'Manage and analyze your customer segments'}
+                </p>
               </div>
               <button
                 onClick={toggleViewMode}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all"
+                className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow"
               >
                 {viewMode === 'create' ? (
                   <>
-                    <FaList />
-                    <span>View Saved Rules</span>
+                    <FaList className="mr-2" />
+                    View Saved Rules
                   </>
                 ) : (
                   <>
-                    <FaPlus />
-                    <span>Create New Rule</span>
+                    <FaPlus className="mr-2" />
+                    Create New Rule
                   </>
                 )}
               </button>
             </div>
 
+            {/* Stats Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatsCard
+                title="Total Segments"
+                value={savedRules.length}
+                icon={FaLayerGroup}
+                color="primary"
+              />
+              <StatsCard
+                title="Active Segments"
+                value={savedRules.filter(rule => rule.status === 'active').length || savedRules.length}
+                icon={FaCheck}
+                color="green"
+              />
+              <StatsCard
+                title="Total Rules"
+                value={savedRules.reduce((acc, rule) => acc + (rule.rules?.length || 0), 0)}
+                icon={FaFilter}
+                color="blue"
+              />
+            </div>
+
             {viewMode === 'create' ? (
-              <div className="card bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <div className="mb-6">
-                  <label className="block font-semibold mb-1 text-gray-700">
-                    Rule Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={ruleName}
-                    onChange={(e) => setRuleName(e.target.value)}
-                    placeholder="Enter a name for this segment rule"
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
+              <DataCard>
+                <div className="space-y-6">
+                  {/* Rule Name Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Segment Name
+                    </label>
+                    <input
+                      type="text"
+                      value={ruleName}
+                      onChange={(e) => setRuleName(e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      placeholder="E.g., High-Value Customers"
+                    />
+                  </div>
 
-                <div className="mb-6">
-                  <label className="block font-semibold mb-1 text-gray-700">
-                    Logic Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={logicType}
-                    onChange={(e) => setLogicType(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Select logic type</option>
-                    <option value="AND">AND (All conditions must match)</option>
-                    <option value="OR">OR (Any condition can match)</option>
-                  </select>
-                </div>
+                  {/* Logic Type Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Logic Type
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="radio"
+                          value="AND"
+                          checked={logicType === 'AND'}
+                          onChange={(e) => setLogicType(e.target.value)}
+                          className="form-radio h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-gray-700">Match All Conditions (AND)</span>
+                      </label>
+                      <label className="inline-flex items-center">
+                        <input
+                          type="radio"
+                          value="OR"
+                          checked={logicType === 'OR'}
+                          onChange={(e) => setLogicType(e.target.value)}
+                          className="form-radio h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-gray-700">Match Any Condition (OR)</span>
+                      </label>
+                    </div>
+                  </div>
 
-                <div className="mb-6">
-                  <label className="block font-semibold mb-1 text-gray-700">
-                    Conditions <span className="text-red-500">*</span>
-                  </label>
-                  {conditions.map((condition) => (
-                    <div key={condition.id} className="flex flex-wrap items-center gap-2 mb-3 p-3 border border-gray-200 rounded-md bg-gray-50">
-                      <select
-                        value={condition.field}
-                        onChange={(e) => handleConditionChange(condition.id, 'field', e.target.value)}
-                        className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value="">Select field</option>
-                        {conditionTypes.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={condition.operator}
-                        onChange={(e) => handleConditionChange(condition.id, 'operator', e.target.value)}
-                        className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        disabled={!condition.field}
-                      >
-                        <option value="">Select operator</option>
-                        {condition.field && getOperatorsForField(condition.field).map((op) => (
-                          <option key={op} value={op}>
-                            {op}
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type={conditionTypes.find(type => type.id === condition.field)?.type || 'text'}
-                        value={condition.value}
-                        onChange={(e) => handleConditionChange(condition.id, 'value', e.target.value)}
-                        placeholder="Enter value"
-                        className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        disabled={!condition.operator}
-                      />
-
+                  {/* Conditions Section */}
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Conditions
+                      </label>
                       <button
-                        type="button"
-                        onClick={() => removeCondition(condition.id)}
-                        className="p-2 text-red-500 hover:text-red-700 focus:outline-none"
+                        onClick={addCondition}
+                        className="inline-flex items-center px-3 py-1 bg-primary-50 text-primary-700 rounded hover:bg-primary-100 transition-colors"
                       >
-                        <FaTrash />
+                        <FaPlus className="mr-1" size={12} />
+                        Add Condition
                       </button>
                     </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={addCondition}
-                    className="mt-2 flex items-center gap-1 text-primary-600 hover:text-primary-800 focus:outline-none"
-                  >
-                    <FaPlus size={14} />
-                    <span>Add Condition</span>
-                  </button>
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={loading || !ruleName || !logicType || conditions.length === 0 || conditions.some(c => !c.field || !c.operator || !c.value)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Saving...' : 'Save Segment Rule'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="card bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                {savedRules.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rule Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logic Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conditions</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {savedRules && savedRules.map((rule) => (
-                          <tr key={rule._id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{rule.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${rule.logicType === 'AND' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                                {rule.logicType}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-500">
-                                {rule.rules && rule.rules.map((cond, idx) => (
-                                  <div key={idx} className="mb-1">
-                                    {conditionTypes.find(type => type.id === cond.field)?.label || cond.field} {cond.operator} {cond.value}
-                                  </div>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(rule.createdAt).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              <button
-                                onClick={() => handleDelete(rule._id)}
-                                className="text-red-600 hover:text-red-800 focus:outline-none"
-                              >
-                                <FaTrash />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    
+                    <div className="space-y-4">
+                      {conditions.map((condition, index) => (
+                        <div key={condition.id} className="flex gap-4 items-start bg-gray-50 p-4 rounded-lg">
+                          <div className="flex-1">
+                            <select
+                              value={condition.field}
+                              onChange={(e) => handleConditionChange(condition.id, 'field', e.target.value)}
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                              <option value="">Select Field</option>
+                              {conditionTypes.map(type => (
+                                <option key={type.id} value={type.id}>{type.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="flex-1">
+                            <select
+                              value={condition.operator}
+                              onChange={(e) => handleConditionChange(condition.id, 'operator', e.target.value)}
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                              <option value="">Select Operator</option>
+                              {getOperatorsForField(condition.field).map(op => (
+                                <option key={op} value={op}>{op}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={condition.value}
+                              onChange={(e) => handleConditionChange(condition.id, 'value', e.target.value)}
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                              placeholder="Enter value"
+                            />
+                          </div>
+                          
+                          <button
+                            onClick={() => removeCondition(condition.id)}
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <FaTrash size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Submit Button */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSubmit}
+                      disabled={loading}
+                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheck className="mr-2" />
+                          Save Segment Rule
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </DataCard>
+            ) : (
+              <DataCard>
+                {savedRules.length > 0 ? (
+                  <Table>
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Segment Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logic Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conditions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {savedRules.map((rule) => (
+                        <tr key={rule._id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-8 w-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                                <FaLayerGroup className="h-4 w-4 text-primary-600" />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{rule.name}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              rule.logicType === 'AND' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {rule.logicType}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-500 space-y-1">
+                              {rule.rules && rule.rules.map((cond, idx) => (
+                                <div key={idx} className="flex items-center">
+                                  <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
+                                  {conditionTypes.find(type => type.id === cond.field)?.label || cond.field} {cond.operator} {cond.value}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(rule.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => handleDelete(rule._id)}
+                              className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <FaTrash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
                 ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No segment rules saved yet.</p>
+                  <div className="text-center py-12">
+                    <FaLayerGroup className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No segment rules yet</h3>
+                    <p className="text-gray-500 mb-6">Create your first segment rule to start targeting specific customer groups</p>
                     <button
                       onClick={handleCreateNew}
-                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow"
                     >
-                      <FaPlus className="-ml-1 mr-2 h-5 w-5" />
+                      <FaPlus className="mr-2" />
                       Create Your First Rule
                     </button>
                   </div>
                 )}
-              </div>
+              </DataCard>
             )}
           </div>
         </div>

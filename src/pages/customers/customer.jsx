@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
-import { FaUpload, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaUpload, FaEdit, FaTrash, FaUserFriends, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
+import { StatsCard, DataCard, Table } from '../../components/common/CardStyles';
 
 const Customer = () => {
   const [customers, setCustomers] = useState([]);
@@ -155,18 +156,20 @@ const Customer = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar user={user} />
         <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Header Section */}
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Customers</h1>
-                <p className="text-gray-600">Manage your customer database</p>
+                <h1 className="text-2xl font-bold text-gray-900">Customer Management</h1>
+                <p className="text-gray-600 mt-1">Upload, manage, and analyze your customer database</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-4">
                 <label
                   htmlFor="file-upload"
-                  className="btn btn-primary flex items-center gap-2 cursor-pointer"
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow cursor-pointer"
                 >
-                  <FaUpload /> Upload CSV
+                  <FaUpload className="mr-2" />
+                  Upload CSV
                 </label>
                 <input
                   id="file-upload"
@@ -176,137 +179,206 @@ const Customer = () => {
                   className="hidden"
                 />
                 {fileName && (
-                  <span className="text-sm text-gray-600">{fileName}</span>
+                  <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                    {fileName}
+                  </span>
                 )}
               </div>
             </div>
 
+            {/* Stats Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard
+                title="Total Customers"
+                value={customers.length}
+                icon={FaUserFriends}
+                color="primary"
+              />
+              <StatsCard
+                title="Active Customers"
+                value={customers.filter(c => c.status === 'active').length || 0}
+                icon={FaUserFriends}
+                color="green"
+              />
+              <StatsCard
+                title="New This Month"
+                value={customers.filter(c => {
+                  const date = new Date(c.createdAt);
+                  const now = new Date();
+                  return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }).length || 0}
+                icon={FaUserFriends}
+                color="blue"
+                trend={12}
+              />
+              <StatsCard
+                title="Locations"
+                value={new Set(customers.map(c => c.location)).size || 0}
+                icon={FaMapMarkerAlt}
+                color="purple"
+              />
+            </div>
+
+            {/* Customer Table */}
             {loading ? (
               <div className="flex justify-center items-center h-64">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               </div>
             ) : customers.length > 0 ? (
-              <div className="card overflow-hidden">
+              <DataCard>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <Table>
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Info</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {customers.map((customer, index) => (
-                        <tr key={customer._id || index} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{customer.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.email}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.phone}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer.location}</td>
+                        <tr key={customer._id || index} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                <span className="text-primary-700 font-medium text-lg">
+                                  {customer.name?.charAt(0)?.toUpperCase() || '?'}
+                                </span>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                                <div className="text-sm text-gray-500">Customer ID: {customer._id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col space-y-1">
+                              <div className="flex items-center text-sm text-gray-500">
+                                <FaEnvelope className="mr-2 text-gray-400" /> {customer.email}
+                              </div>
+                              {customer.phone && (
+                                <div className="flex items-center text-sm text-gray-500">
+                                  <FaPhone className="mr-2 text-gray-400" /> {customer.phone}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <FaMapMarkerAlt className="mr-2 text-gray-400" />
+                              {customer.location || 'N/A'}
+                            </div>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <button
-                                className="p-1 text-blue-600 hover:text-blue-800 relative group"
+                                className="text-blue-600 hover:text-blue-800 transition-colors p-1 hover:bg-blue-100 rounded"
                                 onClick={() => startEdit(customer)}
                               >
                                 <FaEdit />
-                                <span className="absolute bottom-full mb-1 w-max px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 pointer-events-none select-none">
-                                  Edit
-                                </span>
                               </button>
                               <button
-                                className="p-1 text-red-600 hover:text-red-800 relative group"
+                                className="text-red-600 hover:text-red-800 transition-colors p-1 hover:bg-red-100 rounded"
                                 onClick={() => deleteCustomer(customer._id)}
                               >
                                 <FaTrash />
-                                <span className="absolute bottom-full mb-1 w-max px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 pointer-events-none select-none">
-                                  Delete
-                                </span>
                               </button>
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </Table>
                 </div>
-              </div>
+              </DataCard>
             ) : (
-              <div className="card text-center py-12">
-                <p className="text-gray-500">No customers found. Upload a CSV file to get started.</p>
-              </div>
+              <DataCard className="text-center py-12">
+                <FaUserFriends className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No customers yet</h3>
+                <p className="text-gray-500 mb-6">Get started by uploading your customer data</p>
+                <label
+                  htmlFor="file-upload-empty"
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all shadow-sm hover:shadow cursor-pointer"
+                >
+                  <FaUpload className="mr-2" />
+                  Upload CSV
+                </label>
+                <input
+                  id="file-upload-empty"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </DataCard>
             )}
 
             {/* Edit Modal */}
             {editingCustomer && (
-              <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-                <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-                  <h2 className="text-xl font-semibold mb-4">Edit Customer</h2>
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      submitEdit();
-                    }}
-                  >
-                    <label className="block mb-2">
-                      Name
-                      <input
-                        type="text"
-                        name="name"
-                        value={editForm.name}
-                        onChange={handleEditChange}
-                        className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-                        required
-                      />
-                    </label>
-                    <label className="block mb-2">
-                      Email
-                      <input
-                        type="email"
-                        name="email"
-                        value={editForm.email}
-                        onChange={handleEditChange}
-                        className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-                        required
-                      />
-                    </label>
-                    <label className="block mb-2">
-                      Phone
-                      <input
-                        type="text"
-                        name="phone"
-                        value={editForm.phone}
-                        onChange={handleEditChange}
-                        className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-                      />
-                    </label>
-                    <label className="block mb-4">
-                      Location
-                      <input
-                        type="text"
-                        name="location"
-                        value={editForm.location}
-                        onChange={handleEditChange}
-                        className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
-                      />
-                    </label>
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md transform transition-all">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Customer</h2>
+                  <form onSubmit={e => { e.preventDefault(); submitEdit(); }}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={editForm.name}
+                          onChange={handleEditChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={editForm.email}
+                          onChange={handleEditChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Phone</label>
+                        <input
+                          type="text"
+                          name="phone"
+                          value={editForm.phone}
+                          onChange={handleEditChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Location</label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={editForm.location}
+                          onChange={handleEditChange}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
 
-                    <div className="flex justify-end gap-4">
+                    <div className="mt-6 flex justify-end space-x-3">
                       <button
                         type="button"
                         onClick={cancelEdit}
-                        className="btn btn-outline"
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="btn btn-primary"
+                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
                         disabled={loading}
                       >
-                        {loading ? "Saving..." : "Save"}
+                        {loading ? "Saving..." : "Save Changes"}
                       </button>
                     </div>
                   </form>
