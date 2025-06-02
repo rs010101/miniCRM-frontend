@@ -1,4 +1,4 @@
-import { FaUser, FaShoppingCart, FaBullhorn, FaSignOutAlt, FaChartLine, FaHistory, FaTachometerAlt } from "react-icons/fa";
+import { FaUser, FaShoppingCart, FaBullhorn, FaSignOutAlt, FaChartLine, FaTachometerAlt } from "react-icons/fa";
 import { NavLink, useNavigate } from "react-router-dom";
 
 export default function Sidebar() {

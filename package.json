@@ -13,6 +13,7 @@
     "axios": "^1.6.2",
     "chart.js": "^4.4.9",
     "framer-motion": "^12.15.0",
+    "is-wsl": "^3.1.0",
     "lottie-react": "^2.4.0",
     "papaparse": "^5.4.1",
     "prop-types": "^15.8.1",

@@ -224,7 +224,7 @@ export default function DashboardContent() {
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
           <div className="flow-root">
-            <ul role="list" className="-mb-8">
+            <ul className="-mb-8">
               {recentActivities.map((activity, activityIdx) => (
                 <li key={activity.id}>
                   <div className="relative pb-8">
