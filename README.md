@@ -63,14 +63,15 @@ A modern, responsive frontend for the MiniCRM application, built with React, Tai
 1. Create a `.env` file in the root directory:
 \`\`\`env
 # API Configuration
-FRONTEND_URL=http://localhost:5000
+BACKEND_URL=your_backend_url
+FRONTEND_URL=your_frontend_url
 GOOGLE_CLIENT_ID=your_google_client_id
 
 ### Installation Steps 📥
 
 1. **Clone the Repository**
    ```powershell
-   git clone https://github.com/rs010101/miniCRM.git
+   git clone https://github.com/rs010101/miniCRM-frontend
    Set-Location miniCRM/frontend
    ```
 
